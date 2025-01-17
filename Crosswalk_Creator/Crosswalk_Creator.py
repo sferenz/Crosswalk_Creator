@@ -5,6 +5,8 @@ import sys
 from argparse import ArgumentParser
 from difflib import SequenceMatcher
 from scipy.optimize import linear_sum_assignment
+from rdflib import Graph, URIRef
+from rdflib.namespace import RDF, RDFS, OWL, SKOS
 
 def read_csv_with_three_columns(file_path):
     # Read CSV file
@@ -14,8 +16,52 @@ def read_csv_with_three_columns(file_path):
     # Check if the CSV file has more than 3 columns
     if df.shape[1] < 3:
         raise ValueError("The csv-file should have at least three columns, but it has {df.shape[1]}")
+
+    df_cleaned = df.dropna(how='all')
+
+    return df_cleaned
+
+def get_english_label(graph, subject):
+    # Get the English version of SKOS.prefLabel
+    for label in graph.objects(subject, SKOS.prefLabel):
+        if label.language == 'en':
+            return str(label)
+    return None
+
+def read_ontology(file_path):
+    g = Graph()
+
+    # Try to parse the file with rdflib
+    if file_path.lower().endswith('.jsonld'):
+        g.parse(file_path, format='json-ld')
+    elif file_path.lower().endswith('.xml') or file_path.lower().endswith('.rdf'): 
+        g.parse(file_path, format='xml')
+    else:
+        raise ValueError("Unsupported file format. Please provide a .jsonld or .xml file.")
     
-    return df
+    rows = []
+    
+    # Iterate over all triples in the graph
+    for s, p, o in g:
+        if p == RDF.type and o in [OWL.Class, RDFS.Class, RDF.Property, OWL.ObjectProperty, OWL.DatatypeProperty]:
+            # Find the label and description of the class
+            label = get_english_label(g, s)
+            if label != None:
+                comment = g.value(s, RDFS.comment)
+                definition = g.value(s, SKOS.definition)
+                if comment == None:
+                    description = str(definition)
+                elif description == None:
+                    descrition = str(comment)
+                else: 
+                    description = str(comment) + str(definition)
+
+                rows.append((str(label), str(s), description))
+    
+    schema_list = pd.DataFrame(rows)
+    print(f"{schema_list}")
+
+    return schema_list
 
 def create_comparison_matrix(schemaA, schemaB):
     # Create a DataFrame with the length of schemaA as rows and length of schemaB as columns
@@ -53,7 +99,7 @@ def create_decision_list(comparison_matrix):
     decision_list[:] = -1
     
     for i in range(len(row_ind)):
-        if comparison_matrix.iloc[row_ind[i], col_ind[i]] > 0.5:
+        if comparison_matrix.iloc[row_ind[i], col_ind[i]] > 0.3:
             decision_list.iloc[row_ind[i], 0] = col_ind[i]
             non_machted_elements.iloc[col_ind[i], 0] = 0
 
@@ -88,14 +134,24 @@ def create_output_list(decision_list, non_matched_elements, comparison_matrix, s
       
 def main():
     parser = ArgumentParser()
-    parser.add_argument("-A", "--schenmaA", dest="schemaA")
-    parser.add_argument("-B", "--schenmaB", dest="schemaB")
+    parser.add_argument("-A", "--schenmaA", dest="schemaA", help="Schema to compare to (as csv)")
+    parser.add_argument("-B", "--schenmaB", dest="schemaB", help="Other schema which will be compared to schema A (as csv, jsonld or xml)")
     parser.add_argument("-O", "--output", dest="output")
     args = parser.parse_args()
 
     # Step 0: Read in both CSV files
-    schemaA = read_csv_with_three_columns(args.schemaA)
-    schemaB = read_csv_with_three_columns(args.schemaB)
+    if args.schemaA.lower().endswith('.csv'):
+        schemaA = read_csv_with_three_columns(args.schemaA)
+    else:
+        raise ValueError("File for schemaA is not a csv: {args.schemaA}")
+
+    if args.schemaB.lower().endswith('.jsonld') or args.schemaB.lower().endswith('.xml'):
+        schemaB = read_ontology(args.schemaB)
+    elif args.schemaB.lower().endswith('.csv'):
+        schemaB = read_csv_with_three_columns(args.schemaB) 
+    else: 
+        raise ValueError("File for schemaA is not a csv: {args.schemaA}")
+
     print(f"Read both input files")
 
     # Step 1: Create comparison matrix

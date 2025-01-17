@@ -14,7 +14,7 @@
     <IsWindowsApplication>False</IsWindowsApplication>
     <InterpreterId>Global|PythonCore|3.11</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-A "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS.csv" -B "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\codeMeta.csv" -O "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS_CodeMeta.csv"</CommandLineArguments>
+    <CommandLineArguments>-A "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS.csv" -B "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\\metadata4ing.xml" -O "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS_metadata4ing.csv"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

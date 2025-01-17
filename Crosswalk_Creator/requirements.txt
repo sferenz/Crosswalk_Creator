@@ -4,3 +4,4 @@ pycodestyle==2.12.1
 setuptools==65.5.0
 pandas
 scipy
+rdflib
