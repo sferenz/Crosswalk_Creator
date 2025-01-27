@@ -5,8 +5,8 @@ import sys
 from argparse import ArgumentParser
 from difflib import SequenceMatcher
 from scipy.optimize import linear_sum_assignment
-from rdflib import Graph, URIRef
-from rdflib.namespace import RDF, RDFS, OWL, SKOS
+from rdflib import Graph, URIRef, Literal
+from rdflib.namespace import RDF, RDFS, OWL, SKOS, DC
 
 def read_csv_with_three_columns(file_path):
     # Read CSV file
@@ -21,12 +21,13 @@ def read_csv_with_three_columns(file_path):
 
     return df_cleaned
 
-def get_english_label(graph, subject):
-    # Get the English version of SKOS.prefLabel
-    for label in graph.objects(subject, SKOS.prefLabel):
-        if label.language == 'en':
-            return str(label)
+def get_english_thing(graph, subject, thing_type):
+    # Get the English version of thing type
+    for thing in graph.objects(subject, thing_type):
+         if isinstance(thing, Literal) and thing.language == 'en':
+            return str(thing)
     return None
+
 
 def read_ontology(file_path):
     g = Graph()
@@ -34,10 +35,10 @@ def read_ontology(file_path):
     # Try to parse the file with rdflib
     if file_path.lower().endswith('.jsonld'):
         g.parse(file_path, format='json-ld')
-    elif file_path.lower().endswith('.xml') or file_path.lower().endswith('.rdf'): 
+    elif file_path.lower().endswith('.xml') or file_path.lower().endswith('.rdf') or file_path.lower().endswith('.owl'): 
         g.parse(file_path, format='xml')
     else:
-        raise ValueError("Unsupported file format. Please provide a .jsonld or .xml file.")
+        raise ValueError("Unsupported file format. Please provide a .jsonld, .xml, .rdf, or .owl file.")
     
     rows = []
     
@@ -45,20 +46,28 @@ def read_ontology(file_path):
     for s, p, o in g:
         if p == RDF.type and o in [OWL.Class, RDFS.Class, RDF.Property, OWL.ObjectProperty, OWL.DatatypeProperty]:
             # Find the label and description of the class
-            label = get_english_label(g, s)
-            if label != None:
-                comment = g.value(s, RDFS.comment)
-                definition = g.value(s, SKOS.definition)
-                if comment == None:
-                    description = str(definition)
-                elif description == None:
-                    descrition = str(comment)
-                else: 
-                    description = str(comment) + str(definition)
+            label = get_english_thing(g, s, SKOS.prefLabel)
+            if label == None:
+                label = get_english_thing(g, s, RDFS.label)
+            if label == None:
+                 label = str(s)
 
-                rows.append((str(label), str(s), description))
+            if label != None:
+                description_list = []
+                description_list.append(g.value(s, RDFS.comment))
+                description_list.append(get_english_thing(g, s, SKOS.definition))
+                description_list.append(g.value(s, RDFS.isDefinedBy))
+                description_list.append(get_english_thing(g, s, DC.description))
+
+                description = ""
+                for i in description_list:
+                    if i != None:
+                        description = description + i
+
+                rows.append((label, str(s), description))
     
     schema_list = pd.DataFrame(rows)
+
     print(f"{schema_list}")
 
     return schema_list
@@ -145,7 +154,7 @@ def main():
     else:
         raise ValueError("File for schemaA is not a csv: {args.schemaA}")
 
-    if args.schemaB.lower().endswith('.jsonld') or args.schemaB.lower().endswith('.xml'):
+    if args.schemaB.lower().endswith('.jsonld') or args.schemaB.lower().endswith('.xml') or args.schemaB.lower().endswith('.owl'):
         schemaB = read_ontology(args.schemaB)
     elif args.schemaB.lower().endswith('.csv'):
         schemaB = read_csv_with_three_columns(args.schemaB) 
