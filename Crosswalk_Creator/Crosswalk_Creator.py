@@ -1,6 +1,7 @@
 
 import pandas as pd
 import sys
+import json
 
 from argparse import ArgumentParser
 from difflib import SequenceMatcher
@@ -71,6 +72,59 @@ def read_ontology(file_path):
     print(f"{schema_list}")
 
     return schema_list
+
+def read_json_schema(file_path):
+    """
+    Reads a metadata schema from a JSON file.
+
+    Args:
+        file_path (str): The path to the JSON file.
+
+    Returns:
+        dict: The metadata schema as a dictionary.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        json.JSONDecodeError: If the file is not a valid JSON.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            schema = json.load(file)
+
+    except FileNotFoundError:
+        print(f"Error: The file {file_path} was not found.")
+    except json.JSONDecodeError:
+        print(f"Error: The file {file_path} is not a valid JSON.")
+
+    rows = []
+
+    for key, value in schema['definitions'].items():
+        if 'properties' in value:
+            for i, j in value['properties'].items():
+                if 'items' in j:
+                    element = j['items']
+                    if 'properties' in element:
+                        for n, m in value['properties'].items():
+                            if 'items' in m:
+                                element = m['items']
+                            else:
+                                element = m
+                            name = element.get('title', 'No title')
+                            description = element.get('description', 'No description')
+                            type_description = element.get('type', 'No type')
+                            rows.append((name, description, type_description))
+                else:
+                    element = j
+                    
+                name = element.get('title', 'No title')
+                description = element.get('description', 'No description')
+                type_description = element.get('type', 'No type')
+                rows.append((name, description, type_description))
+
+    df = pd.DataFrame(rows, columns=['Name', 'Description', 'Type'])
+    print(f"{df}")
+
+    return df
 
 def create_comparison_matrix(schemaA, schemaB):
     # Create a DataFrame with the length of schemaA as rows and length of schemaB as columns
@@ -158,6 +212,8 @@ def main():
         schemaB = read_ontology(args.schemaB)
     elif args.schemaB.lower().endswith('.csv'):
         schemaB = read_csv_with_three_columns(args.schemaB) 
+    elif args.schemaB.lower().endswith('.json'):
+        schemaB = read_json_schema(args.schemaB)
     else: 
         raise ValueError("File for schemaA is not a csv: {args.schemaA}")
 

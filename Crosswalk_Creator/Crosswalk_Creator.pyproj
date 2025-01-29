@@ -14,7 +14,7 @@
     <IsWindowsApplication>False</IsWindowsApplication>
     <InterpreterId>Global|PythonCore|3.11</InterpreterId>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-A "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS.csv" -B "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ontosoft-v1.0.1.owl" -O "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS_ontosoft.csv"</CommandLineArguments>
+    <CommandLineArguments>-A "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS.csv" -B "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\biotoolsj.json" -O "C:\Users\steph\NC_UOL\00_Dokumente\32_diss\26_Crosswalks\ERS_biotools.csv"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
